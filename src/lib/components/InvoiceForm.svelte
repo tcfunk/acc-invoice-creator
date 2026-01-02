@@ -103,7 +103,7 @@
 							type="text"
 							bind:value={lineItem.name}
 							placeholder="Enter item name"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full text-gray-900 uppercase px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 					<div>
