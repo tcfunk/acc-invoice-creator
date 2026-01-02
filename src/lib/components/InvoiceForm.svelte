@@ -11,6 +11,10 @@
 	let customModifierPrice = $state(0);
 	// Track which line items have manually set prices
 	let manuallySetPrices = $state(new Set<string>());
+	// Invoice calculation parameters
+	let costMultiplier = $state(46);
+	let requiredMargin = $state(20);
+	let commission = $state(5);
 
 	async function addLineItem() {
 		const newItem: LineItem = {
@@ -143,8 +147,19 @@
 		return basePriceWithMarkup + modifiersTotal;
 	}
 
-	function getInvoiceTotal(): number {
+	function getInvoiceSubtotal(): number {
 		return lineItems.reduce((sum, item) => sum + getLineItemTotal(item), 0);
+	}
+
+	function getInvoiceTotal(): number {
+		const subtotal = getInvoiceSubtotal();
+		// Apply cost multiplier (as percentage, so 46% = 0.46)
+		const afterCostMultiplier = subtotal * (costMultiplier / 100);
+		// Apply required margin (increase by percentage, so 20% = 1.20)
+		const afterMargin = afterCostMultiplier / (1 - requiredMargin / 100);
+		// Apply commission (increase by percentage, so 5% = 1.05)
+		const finalTotal = afterMargin / (1 - commission / 100);
+		return finalTotal;
 	}
 </script>
 
@@ -293,10 +308,57 @@
 	</div>
 
 	{#if lineItems.length > 0}
-		<div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
-			<div class="flex items-center justify-between">
-				<span class="text-xl font-semibold text-gray-900">Invoice Total:</span>
-				<span class="text-3xl font-bold text-gray-900">${getInvoiceTotal().toFixed(2)}</span>
+		<div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+			<h3 class="text-lg font-semibold text-gray-900 mb-4">Invoice Calculation Parameters</h3>
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-1">Cost Multiplier %</label>
+					<input
+						type="number"
+						value={costMultiplier}
+						oninput={(e) => {
+							costMultiplier = parseFloat(e.currentTarget.value) || 0;
+						}}
+						step="0.1"
+						min="0"
+						placeholder="46"
+						class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+					/>
+				</div>
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-1">Required Margin %</label>
+					<input
+						type="number"
+						value={requiredMargin}
+						oninput={(e) => {
+							requiredMargin = parseFloat(e.currentTarget.value) || 0;
+						}}
+						step="0.1"
+						min="0"
+						placeholder="20"
+						class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+					/>
+				</div>
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-1">Commission %</label>
+					<input
+						type="number"
+						value={commission}
+						oninput={(e) => {
+							commission = parseFloat(e.currentTarget.value) || 0;
+						}}
+						step="0.1"
+						min="0"
+						placeholder="5"
+						class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+					/>
+				</div>
+			</div>
+			<div class="border-t border-gray-300 pt-4">
+				<div class="flex items-center justify-between">
+					<span class="text-xl font-semibold text-gray-900">Invoice Total:</span>
+					<span class="text-3xl font-bold text-gray-900">${getInvoiceTotal().toFixed(2)}</span>
+				</div>
 			</div>
 		</div>
 	{/if}
