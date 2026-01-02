@@ -72,6 +72,7 @@
 						id: crypto.randomUUID(),
 						name: `Door x ${suggestion.doorCount}`,
 						price: suggestion.doorCount * 150, // $150 per door
+						isWood: true,
 					})
 				}
 				if (suggestion.drawerCount > 0) {
@@ -79,11 +80,13 @@
 						id: crypto.randomUUID(),
 						name: `Drawer x ${suggestion.drawerCount}`,
 						price: suggestion.drawerCount * 55, // $55 per drawer
+						isWood: true,
 					})
 					lineItem.modifiers.push({
 						id: crypto.randomUUID(),
 						name: `Drawer Glides x ${suggestion.drawerCount}`,
 						price: suggestion.drawerCount * 104, // $104 per glides
+						isWood: false,
 					})
 				}
 			}
@@ -163,9 +166,10 @@
 	}
 
 	function getLineItemTotal(lineItem: LineItem): number {
-		const basePriceWithMarkup = lineItem.basePrice * (1 + lineItem.markupPercent / 100);
-		const modifiersTotal = lineItem.modifiers.reduce((sum, mod) => sum + mod.price, 0);
-		return basePriceWithMarkup + modifiersTotal;
+		const woodPrice = lineItem.basePrice + lineItem.modifiers.reduce((sum, mod) => sum + (mod.isWood ? mod.price : 0), 0);
+		const basePriceWithMarkup = woodPrice * (1 + lineItem.markupPercent / 100);
+		const nonWoodPrice = lineItem.modifiers.reduce((sum, mod) => sum + (mod.isWood ? 0 : mod.price), 0) || 0;
+		return basePriceWithMarkup + nonWoodPrice;
 	}
 
 	function getInvoiceSubtotal(): number {

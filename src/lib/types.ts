@@ -2,6 +2,7 @@ export interface Modifier {
 	id: string;
 	name: string;
 	price: number;
+	isWood?: boolean;
 	isCustom?: boolean;
 }
 
