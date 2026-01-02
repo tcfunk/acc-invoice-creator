@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { modifierLibrary } from '../modifierLibrary.js';
+	import { priceSuggestionLibrary } from '../priceSuggestionLibrary.js';
 	import type { LineItem, Modifier } from '../types.js';
 	import { tick } from 'svelte';
 
@@ -8,6 +9,8 @@
 	let currentLineItemId: string | null = $state(null);
 	let customModifierName = $state('');
 	let customModifierPrice = $state(0);
+	// Track which line items have manually set prices
+	let manuallySetPrices = $state(new Set<string>());
 
 	async function addLineItem() {
 		const newItem: LineItem = {
@@ -33,8 +36,49 @@
 		}
 	}
 
+	function findSuggestedPrice(itemName: string): number | null {
+		const upperName = itemName.toUpperCase().trim();
+		if (!upperName) return null;
+
+		// Check if any key in the library matches the start of the item name
+		for (const [key, price] of Object.entries(priceSuggestionLibrary)) {
+			if (upperName.startsWith(key.toUpperCase())) {
+				return price;
+			}
+		}
+		return null;
+	}
+
+	function handleNameInput(lineItemId: string, newName: string) {
+		const lineItem = lineItems.find((item) => item.id === lineItemId);
+		if (!lineItem) return;
+
+		lineItem.name = newName;
+
+		// Only suggest price if user hasn't manually set it
+		if (!manuallySetPrices.has(lineItemId)) {
+			const suggestedPrice = findSuggestedPrice(newName);
+			if (suggestedPrice !== null) {
+				lineItem.basePrice = suggestedPrice;
+			}
+		}
+		// Trigger reactivity
+		lineItems = [...lineItems];
+	}
+
+	function handlePriceInput(lineItemId: string, newPrice: number) {
+		const lineItem = lineItems.find((item) => item.id === lineItemId);
+		if (!lineItem) return;
+
+		lineItem.basePrice = newPrice;
+		// Mark this price as manually set
+		manuallySetPrices.add(lineItemId);
+		lineItems = [...lineItems];
+	}
+
 	function removeLineItem(id: string) {
 		lineItems = lineItems.filter((item) => item.id !== id);
+		manuallySetPrices.delete(id);
 	}
 
 	function openModifierModal(lineItemId: string) {
@@ -116,7 +160,8 @@
 						<label class="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
 						<input
 							type="text"
-							bind:value={lineItem.name}
+							value={lineItem.name}
+							oninput={(e) => handleNameInput(lineItem.id, e.currentTarget.value)}
 							placeholder="Enter item name"
 							data-line-item-id={lineItem.id}
 							data-input-type="name"
@@ -128,14 +173,15 @@
 						<label class="block text-sm font-medium text-gray-700 mb-1">Base Price</label>
 						<input
 							type="number"
-							bind:value={lineItem.basePrice}
+							value={lineItem.basePrice}
+							oninput={(e) => handlePriceInput(lineItem.id, parseFloat(e.currentTarget.value) || 0)}
 							step="0.01"
 							min="0"
 							placeholder="0.00"
 							data-line-item-id={lineItem.id}
 							data-input-type="price"
 							onkeydown={(e) => handleLineItemKeydown(e, lineItem.id, 'price')}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 					<div class="flex items-end">
