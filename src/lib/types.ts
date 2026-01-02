@@ -13,6 +13,12 @@ export interface LineItem {
 	modifiers: Modifier[];
 }
 
+export interface PriceSuggestion {
+	price: number;
+	doorCount: number;
+	drawerCount: number;
+}
+
 export interface Invoice {
 	lineItems: LineItem[];
 }

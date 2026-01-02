@@ -43,14 +43,14 @@
 		}
 	}
 
-	function findSuggestedPrice(itemName: string): number | null {
+	function findSuggestion(itemName: string): PriceSuggestion | null {
 		const upperName = itemName.toUpperCase().trim();
 		if (!upperName) return null;
 
 		// Check if any key in the library matches the start of the item name
-		for (const [key, price] of Object.entries(priceSuggestionLibrary)) {
+		for (const [key, priceSuggestion] of Object.entries(priceSuggestionLibrary)) {
 			if (upperName.startsWith(key.toUpperCase())) {
-				return price;
+				return priceSuggestion;
 			}
 		}
 		return null;
@@ -64,9 +64,28 @@
 
 		// Only suggest price if user hasn't manually set it
 		if (!manuallySetPrices.has(lineItemId)) {
-			const suggestedPrice = findSuggestedPrice(newName);
-			if (suggestedPrice !== null) {
-				lineItem.basePrice = suggestedPrice;
+			const suggestion = findSuggestion(newName)
+			if (suggestion !== null) {
+				lineItem.basePrice = suggestion.price;
+				if (suggestion.doorCount > 0) {
+					lineItem.modifiers.push({
+						id: crypto.randomUUID(),
+						name: `Door x ${suggestion.doorCount}`,
+						price: suggestion.doorCount * 150, // $150 per door
+					})
+				}
+				if (suggestion.drawerCount > 0) {
+					lineItem.modifiers.push({
+						id: crypto.randomUUID(),
+						name: `Drawer x ${suggestion.drawerCount}`,
+						price: suggestion.drawerCount * 55, // $55 per drawer
+					})
+					lineItem.modifiers.push({
+						id: crypto.randomUUID(),
+						name: `Drawer Glides x ${suggestion.drawerCount}`,
+						price: suggestion.drawerCount * 104, // $104 per glides
+					})
+				}
 			}
 		}
 		// Trigger reactivity
@@ -153,19 +172,29 @@
 		return lineItems.reduce((sum, item) => sum + getLineItemTotal(item), 0);
 	}
 
-	function getInvoiceTotal(): number {
+	function getAfterCostMultiplier(): number {
 		const subtotal = getInvoiceSubtotal();
-		// Apply cost multiplier (as percentage, so 46% = 0.46)
-		const afterCostMultiplier = subtotal * (costMultiplier / 100);
-		// Apply required margin (increase by percentage, so 20% = 1.20)
-		const afterMargin = afterCostMultiplier / (1 - requiredMargin / 100);
-		// Apply commission (increase by percentage, so 5% = 1.05)
-		const afterCommission = afterMargin / (1 - commission / 100);
-		// Apply sales tax (increase by percentage, so 6.25% = 1.0625)
-		const afterTax = afterCommission * (1 + salesTax / 100);
-		// Add delivery fee
-		const finalTotal = afterTax + deliveryFee;
-		return finalTotal;
+		return subtotal * (costMultiplier / 100);
+	}
+
+	function getAfterMargin(): number {
+		const afterCostMultiplier = getAfterCostMultiplier();
+		return afterCostMultiplier / (1 - requiredMargin / 100);
+	}
+
+	function getAfterCommission(): number {
+		const afterMargin = getAfterMargin();
+		return afterMargin / (1 - commission / 100);
+	}
+
+	function getAfterTax(): number {
+		const afterCommission = getAfterCommission();
+		return afterCommission * (1 + salesTax / 100);
+	}
+
+	function getInvoiceTotal(): number {
+		const afterTax = getAfterTax();
+		return afterTax + deliveryFee;
 	}
 </script>
 
@@ -389,9 +418,42 @@
 				</div>
 			</div>
 			<div class="border-t border-gray-300 pt-4">
-				<div class="flex items-center justify-between">
-					<span class="text-xl font-semibold text-gray-900">Invoice Total:</span>
-					<span class="text-3xl font-bold text-gray-900">${getInvoiceTotal().toFixed(2)}</span>
+				<h4 class="text-md font-semibold text-gray-900 mb-3">Calculation Breakdown</h4>
+				<div class="space-y-2 mb-4">
+					<div class="flex items-center justify-between text-sm">
+						<span class="text-gray-600">Subtotal (Line Items):</span>
+						<span class="font-medium text-gray-900">${getInvoiceSubtotal().toFixed(2)}</span>
+					</div>
+					<div class="flex items-center justify-between text-sm">
+						<span class="text-gray-600">After Cost Multiplier ({costMultiplier}%):</span>
+						<span class="font-medium text-red-800">${getAfterCostMultiplier().toFixed(2)}</span>
+					</div>
+					<div class="flex items-center justify-between text-sm">
+						<span class="text-gray-600">After Required Margin ({requiredMargin}%):</span>
+						<span class="font-medium text-yellow-800">${getAfterMargin().toFixed(2)}</span>
+					</div>
+					<div class="flex items-center justify-between text-sm">
+						<span class="text-gray-600">After Commission ({commission}%):</span>
+						<span class="font-medium text-gray-900">${getAfterCommission().toFixed(2)}</span>
+					</div>
+					<div class="flex items-center justify-between text-sm">
+						<span class="text-gray-600">After Sales Tax ({salesTax}%):</span>
+						<span class="font-medium text-gray-900">${getAfterTax().toFixed(2)}</span>
+					</div>
+					<div class="flex items-center justify-between text-sm">
+						<span class="text-gray-600">Delivery Fee:</span>
+						<span class="font-medium text-gray-900">${deliveryFee.toFixed(2)}</span>
+					</div>
+				</div>
+				<div class="border-t border-gray-300 pt-3">
+					<div class="flex items-center justify-between">
+						<span class="text-xl font-semibold text-gray-900">Invoice Total:</span>
+						<span class="text-3xl font-bold text-gray-900">${getInvoiceTotal().toFixed(2)}</span>
+					</div>
+					<div class="flex items-center justify-between">
+						<span class="text-xl font-semibold text-gray-900">Profit:</span>
+						<span class="text-3xl font-bold text-green-800">${(getAfterMargin() - getAfterCostMultiplier()).toFixed(2)}</span>
+					</div>
 				</div>
 			</div>
 		</div>
