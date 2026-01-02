@@ -9,6 +9,7 @@ export interface LineItem {
 	id: string;
 	name: string;
 	basePrice: number;
+	markupPercent: number;
 	modifiers: Modifier[];
 }
 

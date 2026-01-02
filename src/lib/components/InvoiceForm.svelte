@@ -17,6 +17,7 @@
 			id: crypto.randomUUID(),
 			name: '',
 			basePrice: 0,
+			markupPercent: 30,
 			modifiers: []
 		};
 		lineItems = [...lineItems, newItem];
@@ -137,8 +138,9 @@
 	}
 
 	function getLineItemTotal(lineItem: LineItem): number {
+		const basePriceWithMarkup = lineItem.basePrice * (1 + lineItem.markupPercent / 100);
 		const modifiersTotal = lineItem.modifiers.reduce((sum, mod) => sum + mod.price, 0);
-		return lineItem.basePrice + modifiersTotal;
+		return basePriceWithMarkup + modifiersTotal;
 	}
 
 	function getInvoiceTotal(): number {
@@ -155,7 +157,7 @@
 	<div class="space-y-4 mb-6">
 		{#each lineItems as lineItem (lineItem.id)}
 			<div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
 					<div>
 						<label class="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
 						<input
@@ -181,6 +183,21 @@
 							data-line-item-id={lineItem.id}
 							data-input-type="price"
 							onkeydown={(e) => handleLineItemKeydown(e, lineItem.id, 'price')}
+							class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Markup %</label>
+						<input
+							type="number"
+							value={lineItem.markupPercent}
+							oninput={(e) => {
+								lineItem.markupPercent = parseFloat(e.currentTarget.value) || 0;
+								lineItems = [...lineItems];
+							}}
+							step="0.1"
+							min="0"
+							placeholder="30"
 							class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
