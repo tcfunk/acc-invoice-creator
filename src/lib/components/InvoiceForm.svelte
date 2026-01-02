@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { modifierLibrary } from '../modifierLibrary.js';
 	import { priceSuggestionLibrary } from '../priceSuggestionLibrary.js';
-	import type { LineItem, Modifier } from '../types.js';
+	import type { LineItem, Modifier, PriceSuggestion } from '../types.js';
 	import { tick } from 'svelte';
 
 	let lineItems: LineItem[] = $state([]);
@@ -24,6 +24,8 @@
 			name: '',
 			basePrice: 0,
 			markupPercent: 30,
+			doors: 0,
+			drawers: 0,
 			modifiers: []
 		};
 		lineItems = [...lineItems, newItem];
@@ -68,25 +70,14 @@
 			if (suggestion !== null) {
 				lineItem.basePrice = suggestion.price;
 				if (suggestion.doorCount > 0) {
-					lineItem.modifiers.push({
-						id: crypto.randomUUID(),
-						name: `Door x ${suggestion.doorCount}`,
-						price: suggestion.doorCount * 150, // $150 per door
-						isWood: true,
-					})
+					lineItem.doors += suggestion.doorCount * 150;
 				}
 				if (suggestion.drawerCount > 0) {
-					lineItem.modifiers.push({
-						id: crypto.randomUUID(),
-						name: `Drawer x ${suggestion.drawerCount}`,
-						price: suggestion.drawerCount * 55, // $55 per drawer
-						isWood: true,
-					})
+					lineItem.drawers += suggestion.drawerCount * 55;
 					lineItem.modifiers.push({
 						id: crypto.randomUUID(),
 						name: `Drawer Glides x ${suggestion.drawerCount}`,
 						price: suggestion.drawerCount * 104, // $104 per glides
-						isWood: false,
 					})
 				}
 			}
@@ -165,10 +156,14 @@
 		lineItems = [...lineItems];
 	}
 
+	function getWoodPrice(lineItem: LineItem): number {
+		return lineItem.basePrice + lineItem.doors + lineItem.drawers;
+	}
+
 	function getLineItemTotal(lineItem: LineItem): number {
-		const woodPrice = lineItem.basePrice + lineItem.modifiers.reduce((sum, mod) => sum + (mod.isWood ? mod.price : 0), 0);
+		const woodPrice = getWoodPrice(lineItem);
 		const basePriceWithMarkup = woodPrice * (1 + lineItem.markupPercent / 100);
-		const nonWoodPrice = lineItem.modifiers.reduce((sum, mod) => sum + (mod.isWood ? 0 : mod.price), 0) || 0;
+		const nonWoodPrice = lineItem.modifiers.reduce((sum, mod) => sum + mod.price, 0) || 0;
 		return basePriceWithMarkup + nonWoodPrice;
 	}
 
@@ -264,7 +259,33 @@
 							+ Add Modifier
 						</button>
 					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Doors</label>
+						<input
+							type="number"
+							value={lineItem.doors}
+							oninput={(e) => {
+								lineItem.doors = parseInt(e.currentTarget.value) || 0;
+								lineItems = [...lineItems];
+							}}
+							class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Drawers</label>
+						<input
+							type="number"
+							value={lineItem.drawers}
+							oninput={(e) => {
+								lineItem.drawers = parseInt(e.currentTarget.value) || 0;
+								lineItems = [...lineItems];
+							}}
+							class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						/>
+					</div>
 				</div>
+
+
 
 				{#if lineItem.modifiers.length > 0}
 					<div class="mt-4 pt-4 border-t border-gray-200">

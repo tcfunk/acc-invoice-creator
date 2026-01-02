@@ -2,7 +2,6 @@ export interface Modifier {
 	id: string;
 	name: string;
 	price: number;
-	isWood?: boolean;
 	isCustom?: boolean;
 }
 
@@ -11,6 +10,8 @@ export interface LineItem {
 	name: string;
 	basePrice: number;
 	markupPercent: number;
+	doors: number;
+	drawers: number;
 	modifiers: Modifier[];
 }
 
