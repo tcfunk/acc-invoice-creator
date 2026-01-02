@@ -15,6 +15,8 @@
 	let costMultiplier = $state(46);
 	let requiredMargin = $state(20);
 	let commission = $state(5);
+	let salesTax = $state(6.25);
+	let deliveryFee = $state(500);
 
 	async function addLineItem() {
 		const newItem: LineItem = {
@@ -158,7 +160,11 @@
 		// Apply required margin (increase by percentage, so 20% = 1.20)
 		const afterMargin = afterCostMultiplier / (1 - requiredMargin / 100);
 		// Apply commission (increase by percentage, so 5% = 1.05)
-		const finalTotal = afterMargin / (1 - commission / 100);
+		const afterCommission = afterMargin / (1 - commission / 100);
+		// Apply sales tax (increase by percentage, so 6.25% = 1.0625)
+		const afterTax = afterCommission * (1 + salesTax / 100);
+		// Add delivery fee
+		const finalTotal = afterTax + deliveryFee;
 		return finalTotal;
 	}
 </script>
@@ -310,7 +316,7 @@
 	{#if lineItems.length > 0}
 		<div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
 			<h3 class="text-lg font-semibold text-gray-900 mb-4">Invoice Calculation Parameters</h3>
-			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-1">Cost Multiplier %</label>
 					<input
@@ -350,6 +356,34 @@
 						step="0.1"
 						min="0"
 						placeholder="5"
+						class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+					/>
+				</div>
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-1">Sales Tax %</label>
+					<input
+						type="number"
+						value={salesTax}
+						oninput={(e) => {
+							salesTax = parseFloat(e.currentTarget.value) || 0;
+						}}
+						step="0.01"
+						min="0"
+						placeholder="6.25"
+						class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+					/>
+				</div>
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-1">Delivery Fee</label>
+					<input
+						type="number"
+						value={deliveryFee}
+						oninput={(e) => {
+							deliveryFee = parseFloat(e.currentTarget.value) || 0;
+						}}
+						step="0.01"
+						min="0"
+						placeholder="500"
 						class="w-full text-gray-900 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
