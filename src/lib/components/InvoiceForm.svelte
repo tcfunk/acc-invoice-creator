@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { modifierLibrary } from '../modifierLibrary.js';
 	import type { LineItem, Modifier } from '../types.js';
+	import { tick } from 'svelte';
 
 	let lineItems: LineItem[] = $state([]);
 	let showModifierModal = $state(false);
@@ -8,7 +9,7 @@
 	let customModifierName = $state('');
 	let customModifierPrice = $state(0);
 
-	function addLineItem() {
+	async function addLineItem() {
 		const newItem: LineItem = {
 			id: crypto.randomUUID(),
 			name: '',
@@ -16,6 +17,20 @@
 			modifiers: []
 		};
 		lineItems = [...lineItems, newItem];
+		await tick();
+		// Focus on the name input of the newly added item
+		const nameInput = document.querySelector(`input[data-line-item-id="${newItem.id}"][data-input-type="name"]`) as HTMLInputElement;
+		if (nameInput) {
+			nameInput.focus();
+		}
+		return newItem.id;
+	}
+
+	async function handleLineItemKeydown(event: KeyboardEvent, lineItemId: string, inputType: 'name' | 'price') {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			const newItemId = await addLineItem();
+		}
 	}
 
 	function removeLineItem(id: string) {
@@ -103,6 +118,9 @@
 							type="text"
 							bind:value={lineItem.name}
 							placeholder="Enter item name"
+							data-line-item-id={lineItem.id}
+							data-input-type="name"
+							onkeydown={(e) => handleLineItemKeydown(e, lineItem.id, 'name')}
 							class="w-full text-gray-900 uppercase px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
@@ -114,6 +132,9 @@
 							step="0.01"
 							min="0"
 							placeholder="0.00"
+							data-line-item-id={lineItem.id}
+							data-input-type="price"
+							onkeydown={(e) => handleLineItemKeydown(e, lineItem.id, 'price')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
